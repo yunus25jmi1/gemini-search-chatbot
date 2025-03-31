@@ -12,7 +12,7 @@ COPY . .
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o /app/gemini-chatbot ./cmd/main.go
+    go build -ldflags="-w -s" -o /app/gemini-chatbot ./main.go
 
 # Runtime stage
 FROM alpine:latest
