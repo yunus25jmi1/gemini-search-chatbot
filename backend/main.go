@@ -119,6 +119,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Origin", "https://yourusername.github.io")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Session-ID")
+		w.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusNoContent)
