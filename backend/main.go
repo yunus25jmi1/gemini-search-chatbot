@@ -94,7 +94,7 @@ func getServerAddress() string {
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok","version":"1.0.0"}`))
+	w.Write([]byte(`{"status":"ok","version":"1.2.0"}`))
 }
 
 // Middleware configuration
@@ -116,8 +116,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Allow your GitHub Pages domain
-		w.Header().Set("Access-Control-Allow-Origin", "https://your-github-username.github.io")
+		w.Header().Set("Access-Control-Allow-Origin", "https://yourusername.github.io")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Session-ID")
 
@@ -131,8 +130,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func rateLimitMiddleware(next http.Handler) http.Handler {
-	// Implement proper rate limiting here
-	return next
+	// Implement using github.com/ulule/limiter/v3
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
 }
 
 func recoveryMiddleware(next http.Handler) http.Handler {

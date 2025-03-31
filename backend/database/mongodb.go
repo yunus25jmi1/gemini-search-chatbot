@@ -16,6 +16,10 @@ type MongoClient struct {
 	DB     *mongo.Database
 }
 
+func (mc *MongoClient) Disconnect(ctx context.Context) any {
+	panic("unimplemented")
+}
+
 func NewMongoClient(ctx context.Context) *MongoClient {
 	uri := utils.GetMongoURI()
 	if uri == "" {

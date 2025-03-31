@@ -1,0 +1,9 @@
+**/.git
+**/node_modules
+**/*.log
+**/Dockerfile
+**/.env.local
+**/*.md
+**/bin
+**/vendor
+**/.vscode
