@@ -9,22 +9,21 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yourusername/gemini-search-chatbot/database"
-	"github.com/yourusername/gemini-search-chatbot/handlers"
-	"github.com/yourusername/gemini-search-chatbot/utils"
+	"github.com/yunus25jmi1/gemini-search-chatbot/backend/database"
+	"github.com/yunus25jmi1/gemini-search-chatbot/backend/handlers"
+	"github.com/yunus25jmi1/gemini-search-chatbot/backend/utils"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
 
 func main() {
-	// Load configuration
+	// Load environment variables
 	utils.LoadConfig()
 
-	// Create context with timeout
+	// Create MongoDB client
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Initialize MongoDB client
 	mongoClient := database.NewMongoClient(ctx)
 	defer func() {
 		if err := mongoClient.Disconnect(ctx); err != nil {
@@ -53,7 +52,7 @@ func main() {
 
 	// Configure HTTP/2 server
 	server := &http.Server{
-		Addr:    ":" + getPort(),
+		Addr:    getServerAddress(),
 		Handler: h2c.NewHandler(handler, &http2.Server{}),
 	}
 
@@ -63,7 +62,7 @@ func main() {
 
 	// Start server
 	go func() {
-		log.Printf("Server starting on port %s", getPort())
+		log.Printf("Server starting on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed: %v", err)
 		}
@@ -77,27 +76,28 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer shutdownCancel()
 
-	// Attempt graceful shutdown
+	// Graceful shutdown
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Graceful shutdown failed: %v", err)
 	}
 	log.Println("Server stopped")
 }
 
-func getPort() string {
-	if port := os.Getenv("PORT"); port != "" {
-		return port
+func getServerAddress() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
-	return "8080"
+	return ":" + port
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok"}`))
+	w.Write([]byte(`{"status":"ok","version":"1.0.0"}`))
 }
 
-// Middleware chain setup
+// Middleware configuration
 func applyMiddleware(h http.Handler, middleware ...func(http.Handler) http.Handler) http.Handler {
 	for _, mw := range middleware {
 		h = mw(h)
@@ -105,7 +105,6 @@ func applyMiddleware(h http.Handler, middleware ...func(http.Handler) http.Handl
 	return h
 }
 
-// Example middleware implementations
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -117,27 +116,30 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Allow your GitHub Pages domain
 		w.Header().Set("Access-Control-Allow-Origin", "https://your-github-username.github.io")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Session-ID")
+
 		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }
 
 func rateLimitMiddleware(next http.Handler) http.Handler {
-	// Implement using github.com/ulule/limiter/v3
-	return next // Placeholder
+	// Implement proper rate limiting here
+	return next
 }
 
 func recoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Panic recovered: %v", err)
+				log.Printf("Recovered from panic: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
