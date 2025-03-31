@@ -42,3 +42,15 @@
 .loading-dot {
     @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
 }
+
+.error-message {
+    @apply text-red-500 p-2 mt-2 border border-red-300 rounded bg-red-50;
+}
+
+.loading-indicator {
+    @apply flex items-center justify-center gap-2 py-4;
+}
+
+.loading-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
+}

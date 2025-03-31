@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://gemini-search-chatbot.onrender.com'; // Update with your Render URL
+const API_BASE_URL = 'https://gemini-search-chatbot.onrender.com';
 const chatMessages = document.getElementById('chat-messages');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
@@ -6,17 +6,22 @@ const sendBtn = document.getElementById('send-btn');
 let sessionId = localStorage.getItem('sessionId') || generateSessionId();
 localStorage.setItem('sessionId', sessionId);
 
+// Session management
 function generateSessionId() {
-    return 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    const crypto = window.crypto || window.msCrypto;
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return `session-${Date.now()}-${array[0].toString(36)}`;
 }
 
+// Message handling
 function addMessage(content, isBot = true, sources = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${isBot ? 'bot-message' : 'user-message'} animate-fade-in`;
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
-    contentDiv.innerHTML = sanitize(content);
+    contentDiv.textContent = sanitize(content);
     
     if (sources.length > 0) {
         const sourcesDiv = document.createElement('div');
@@ -35,18 +40,35 @@ function addMessage(content, isBot = true, sources = []) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// Security sanitization
 function sanitize(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
+// Error handling
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'error-message text-red-500 p-2 mt-2 border border-red-300 rounded';
+    errorDiv.textContent = message;
+    
+    const existingError = chatMessages.querySelector('.error-message');
+    if (existingError) {
+        chatMessages.replaceChild(errorDiv, existingError);
+    } else {
+        chatMessages.appendChild(errorDiv);
+    }
+}
+
+// Core chat functionality
 async function sendMessage() {
     const message = userInput.value.trim();
     if (!message) return;
 
+    let loadingDiv = null;
     try {
-        // Disable input during processing
+        // Disable UI during processing
         userInput.disabled = true;
         sendBtn.disabled = true;
         sendBtn.textContent = 'Sending...';
@@ -55,8 +77,8 @@ async function sendMessage() {
         addMessage(message, false);
         userInput.value = '';
 
-        // Add temporary loading indicator
-        const loadingDiv = document.createElement('div');
+        // Add loading indicator
+        loadingDiv = document.createElement('div');
         loadingDiv.className = 'loading-indicator';
         loadingDiv.innerHTML = `
             <div class="loading-dot"></div>
@@ -65,6 +87,7 @@ async function sendMessage() {
         `;
         chatMessages.appendChild(loadingDiv);
 
+        // API request
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: 'POST',
             headers: {
@@ -73,23 +96,25 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 message: message,
-                search_required: true
+                search_enabled: true // Fixed parameter name
             })
         });
 
-        if (!response.ok) throw new Error('API request failed');
-        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
         
-        // Remove loading indicator
-        chatMessages.removeChild(loadingDiv);
-        
-        // Add bot response
+        // Cleanup and display
+        if (loadingDiv) chatMessages.removeChild(loadingDiv);
         addMessage(data.response, true, data.sources || []);
 
     } catch (error) {
-        console.error('Error:', error);
-        addMessage('Sorry, there was an error processing your request. Please try again.', true);
+        console.error('Chat error:', error);
+        if (loadingDiv) chatMessages.removeChild(loadingDiv);
+        showError(error.message || 'Connection failed. Please try again.');
     } finally {
         userInput.disabled = false;
         sendBtn.disabled = false;
@@ -97,12 +122,20 @@ async function sendMessage() {
     }
 }
 
-// Event Listeners
+// Event listeners
 userInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        sendMessage();
+        sendMessage().catch(error => {
+            console.error('Unhandled error:', error);
+            showError('Unexpected error occurred');
+        });
     }
 });
 
-sendBtn.addEventListener('click', sendMessage);
+sendBtn.addEventListener('click', () => {
+    sendMessage().catch(error => {
+        console.error('Unhandled error:', error);
+        showError('Unexpected error occurred');
+    });
+});
