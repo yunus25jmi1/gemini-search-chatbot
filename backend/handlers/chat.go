@@ -86,7 +86,7 @@ func (h *ChatHandler) HandleChat(w http.ResponseWriter, r *http.Request) {
 
 	// Return response
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "https://your-github-username.github.io")
+	w.Header().Set("Access-Control-Allow-Origin", "https://yunus25jmi1.github.io")
 	json.NewEncoder(w).Encode(ChatResponse{
 		Response: response,
 		Sources:  sources,
