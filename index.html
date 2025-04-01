@@ -6,14 +6,18 @@
     <title>Gemini Search Chatbot</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 min-h-screen">
-    <div class="container mx-auto max-w-3xl p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-            <!-- Header with Theme Toggle -->
+    <div class="container mx-auto p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-2xl mx-auto">
+            <!-- Header -->
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">🔍 Gemini Search Assistant</h1>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-blue-500 dark:text-blue-400">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+                    </svg>
+                    Gemini Search Assistant
+                </h1>
                 <div class="flex items-center gap-4">
                     <button 
                         id="theme-toggle"
@@ -28,9 +32,9 @@
                 </div>
             </div>
 
-            <!-- Chat Messages Container -->
-            <div id="chat-messages" class="p-4 h-96 overflow-y-auto">
-                <!-- Initial Bot Message -->
+            <!-- Chat Messages -->
+            <div id="chat-messages" class="p-4 h-[calc(100vh-20rem)] overflow-y-auto">
+                <!-- Initial Message -->
                 <div class="chat-message bot-message animate-fade-in">
                     <div class="message-content relative">
                         <span class="message-tag bot-tag absolute -top-6">BOT</span>
