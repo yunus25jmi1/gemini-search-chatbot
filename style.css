@@ -62,3 +62,52 @@
 #chat-messages::-webkit-scrollbar-thumb {
     @apply bg-gray-400 dark:bg-gray-600 rounded;
 }
+
+/* Add prose styling for markdown content */
+.prose {
+    @apply text-gray-800 dark:text-gray-200;
+}
+
+.prose h1, .prose h2, .prose h3 {
+    @apply font-bold mt-4 mb-2;
+}
+
+.prose h1 { @apply text-2xl; }
+.prose h2 { @apply text-xl; }
+.prose h3 { @apply text-lg; }
+
+.prose p {
+    @apply my-2;
+}
+
+.prose ul {
+    @apply list-disc pl-6;
+}
+
+.prose ol {
+    @apply list-decimal pl-6;
+}
+
+.prose table {
+    @apply border-collapse w-full my-4;
+}
+
+.prose td, .prose th {
+    @apply border dark:border-gray-600 p-2;
+}
+
+.prose th {
+    @apply bg-gray-100 dark:bg-gray-700;
+}
+
+.prose code {
+    @apply bg-gray-100 dark:bg-gray-700 px-1 rounded;
+}
+
+.prose pre {
+    @apply bg-gray-100 dark:bg-gray-700 p-4 rounded overflow-x-auto;
+}
+
+.prose blockquote {
+    @apply border-l-4 border-gray-400 dark:border-gray-500 pl-4 italic;
+}
