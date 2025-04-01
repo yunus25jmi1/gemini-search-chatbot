@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -35,13 +36,26 @@ func main() {
 	chatHandler := handlers.NewChatHandler(mongoClient)
 	searchHandler := handlers.NewSearchHandler(mongoClient)
 
-	// Configure router
+	// Configure router with API versioning
 	router := http.NewServeMux()
-	router.HandleFunc("/health", healthCheckHandler)
-	router.HandleFunc("/chat", chatHandler.HandleChat)
-	router.HandleFunc("/search", searchHandler.HandleSearch)
-	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/favicon.ico") // Or return 204
+	apiRouter := http.NewServeMux()
+	apiRouter.HandleFunc("/health", healthCheckHandler)
+	apiRouter.HandleFunc("/chat", chatHandler.HandleChat)
+	apiRouter.HandleFunc("/search", searchHandler.HandleSearch)
+
+	// Versioned API endpoint
+	router.Handle("/api/v1/", http.StripPrefix("/api/v1", apiRouter))
+
+	// Catch-All 404 Handler
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":   "Endpoint not found",
+			"path":    r.URL.Path,
+			"docs":    "https://your-docs-url.com",
+			"version": "1.4.0",
+		})
 	})
 
 	// Configure middleware chain
@@ -95,9 +109,18 @@ func getServerAddress() string {
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok","version":"1.2.0"}`))
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"version": "1.4.0",
+		"service": "gemini-chatbot",
+	})
 }
 
 // Middleware configuration
@@ -120,11 +143,11 @@ func loggingMiddleware(next http.Handler) http.Handler {
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "https://yunus25jmi1.github.io")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Session-ID")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
-		if r.Method == "OPTIONS" {
+		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
