@@ -20,9 +20,16 @@ type ChatRequest struct {
 	SearchEnabled bool   `json:"search_enabled"`
 }
 
+type LogEntry struct {
+	Step    string `json:"step"`
+	Status  string `json:"status"` // planning, searching, analyzing, finalizing
+	Message string `json:"message"`
+}
+
 type ChatResponse struct {
-	Response string   `json:"response"`
-	Sources  []string `json:"sources,omitempty"`
+	Response    string     `json:"response"`
+	Sources     []string   `json:"sources,omitempty"`
+	ThinkingLog []LogEntry `json:"thinking_log"`
 }
 
 type ChatHandler struct {
@@ -54,22 +61,19 @@ func (h *ChatHandler) HandleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Sanitize input
 	cleanMessage := utils.SanitizeInput(req.Message)
 	if cleanMessage == "" {
 		http.Error(w, "Empty message", http.StatusBadRequest)
 		return
 	}
 
-	// Generate response
-	response, sources, err := h.generateResponse(r.Context(), cleanMessage, req.SearchEnabled)
+	response, sources, thinkingLog, err := h.generateResponse(r.Context(), cleanMessage, req.SearchEnabled)
 	if err != nil {
 		log.Printf("Generation error: %v", err)
 		http.Error(w, "Failed to generate response", http.StatusInternalServerError)
 		return
 	}
 
-	// Save to database
 	chatMsg := models.ChatMessage{
 		SessionID:      r.Header.Get("X-Session-ID"),
 		UserMessage:    cleanMessage,
@@ -84,48 +88,51 @@ func (h *ChatHandler) HandleChat(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Database save error: %v", err)
 	}
 
-	// Return response
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "https://yunus25jmi1.github.io")
 	json.NewEncoder(w).Encode(ChatResponse{
-		Response: response,
-		Sources:  sources,
+		Response:    response,
+		Sources:     sources,
+		ThinkingLog: thinkingLog,
 	})
 }
 
-func (h *ChatHandler) generateResponse(ctx context.Context, message string, searchEnabled bool) (string, []string, error) {
-	model := h.GeminiClient.GenerativeModel("gemini-1.5-flash")
+func (h *ChatHandler) generateResponse(ctx context.Context, message string, searchEnabled bool) (string, []string, []LogEntry, error) {
+	thinkingLog := []LogEntry{
+		{Step: "1", Status: "planning", Message: "Analyzing query structure and intent..."},
+		{Step: "2", Status: "searching", Message: "Identifying relevant information sources..."},
+	}
 
-	// Configure generation parameters
+	model := h.GeminiClient.GenerativeModel("gemini-2.0-flash-thinking-exp-01-21")
 	model.SetTemperature(0.9)
 	model.SetTopP(0.95)
 	model.SetMaxOutputTokens(2048)
 
-	// If search enabled, enhance prompt (implement search integration)
 	prompt := message
 	var sources []string
 	if searchEnabled {
-		// Placeholder for search integration
+		thinkingLog = append(thinkingLog, LogEntry{Step: "3", Status: "analyzing", Message: "Enhancing prompt with additional search context..."})
+		// Placeholder for search enhancement
 		// prompt = enhancePromptWithSearch(message)
 		// sources = getSourcesFromSearch()
 	}
 
-	// Generate content
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
-		return "", nil, fmt.Errorf("generation failed: %w", err)
+		return "", nil, thinkingLog, fmt.Errorf("generation failed: %w", err)
 	}
 
-	// Extract response
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return "", nil, fmt.Errorf("empty response from API")
+		return "", nil, thinkingLog, fmt.Errorf("empty response from API")
 	}
 
 	part := resp.Candidates[0].Content.Parts[0]
 	text, ok := part.(genai.Text)
 	if !ok {
-		return "", nil, fmt.Errorf("unexpected response type: %T", part)
+		return "", nil, thinkingLog, fmt.Errorf("unexpected response type: %T", part)
 	}
 
-	return string(text), sources, nil
+	thinkingLog = append(thinkingLog, LogEntry{Step: "4", Status: "finalizing", Message: "Finalizing response output..."})
+
+	return string(text), sources, thinkingLog, nil
 }
