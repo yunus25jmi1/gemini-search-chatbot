@@ -4,21 +4,22 @@ const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const themeToggle = document.getElementById('theme-toggle');
 
-// Initialize Markdown converter
+// Markdown Converter Configuration
 const mdConverter = new showdown.Converter({
     tables: true,
     simplifiedAutoLink: true,
     strikethrough: true,
     tasklists: true,
     ghCodeBlocks: true,
-    emoji: true
+    emoji: true,
+    openLinksInNewWindow: true
 });
 
 // Theme Management
 function initializeTheme() {
     const isDark = localStorage.getItem('theme') === 'dark';
     document.documentElement.classList.toggle('dark', isDark);
-    themeToggle.textContent = isDark ? '🌞' : '🌙';
+    themeToggle.innerHTML = isDark ? '🌞' : '🌙';
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
     applyPrismTheme(isDark);
 }
@@ -40,7 +41,7 @@ themeToggle.addEventListener('click', () => {
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    themeToggle.textContent = isDark ? '🌞' : '🌙';
+    themeToggle.innerHTML = isDark ? '🌞' : '🌙';
     applyPrismTheme(isDark);
 });
 
@@ -55,7 +56,7 @@ function generateSessionId() {
     return `session-${Date.now()}-${array[0].toString(36)}`;
 }
 
-// Message Handling with Markdown and Syntax Highlighting
+// Message Handling
 function addMessage(content, isBot = true, sources = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${isBot ? 'bot-message' : 'user-message'} animate-fade-in`;
@@ -63,41 +64,40 @@ function addMessage(content, isBot = true, sources = []) {
     const contentDiv = document.createElement('div');
     contentDiv.className = 'message-content';
     
-    const tagSpan = document.createElement('span');
-    tagSpan.className = 'message-tag';
-    tagSpan.textContent = isBot ? 'AI' : 'You';
-    
     const textDiv = document.createElement('div');
-    textDiv.className = 'prose dark:prose-invert max-w-full';
+    textDiv.className = 'prose dark:prose-invert';
     textDiv.innerHTML = mdConverter.makeHtml(sanitize(content));
-    
-    // Apply syntax highlighting
+
+    // Process code blocks
     const preElements = textDiv.querySelectorAll('pre');
     preElements.forEach(pre => {
         pre.classList.add('language-none');
-        if (!pre.firstElementChild?.classList.contains('language-none')) {
-            const code = document.createElement('code');
-            code.className = 'language-none';
-            code.innerHTML = pre.innerHTML;
-            pre.innerHTML = '';
-            pre.appendChild(code);
-        }
+        const code = document.createElement('code');
+        code.className = 'language-none';
+        code.innerHTML = pre.innerHTML;
+        pre.innerHTML = '';
+        pre.appendChild(code);
     });
-    
+
     Prism.highlightAllUnder(textDiv);
 
-    contentDiv.appendChild(tagSpan);
     contentDiv.appendChild(textDiv);
 
     if (sources.length > 0) {
         const sourcesDiv = document.createElement('div');
-        sourcesDiv.className = 'sources mt-2 space-y-1';
+        sourcesDiv.className = 'sources mt-4 space-y-2';
         sources.forEach(source => {
             const sourceElement = document.createElement('a');
-            sourceElement.className = 'block text-xs text-blue-600 dark:text-blue-400 hover:underline';
+            sourceElement.className = 'flex items-center text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors';
             sourceElement.href = source;
-            sourceElement.textContent = new URL(source).hostname;
             sourceElement.target = '_blank';
+            sourceElement.rel = 'noopener noreferrer';
+            sourceElement.innerHTML = `
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                ${new URL(source).hostname}
+            `;
             sourcesDiv.appendChild(sourceElement);
         });
         contentDiv.appendChild(sourcesDiv);
@@ -120,26 +120,36 @@ async function sendMessage() {
     if (!message) return;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     let loadingDiv = null;
 
     try {
+        // Disable input
         userInput.disabled = true;
-        sendBtn.disabled = true;
-        sendBtn.textContent = 'Sending...';
+        sendBtn.innerHTML = `
+            <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+            </svg>
+        `;
 
+        // Add user message
         addMessage(message, false);
         userInput.value = '';
 
+        // Add loading indicator
         loadingDiv = document.createElement('div');
         loadingDiv.className = 'loading-indicator';
         loadingDiv.innerHTML = `
-            <div class="loading-dot"></div>
-            <div class="loading-dot" style="animation-delay: 0.2s"></div>
-            <div class="loading-dot" style="animation-delay: 0.4s"></div>
+            <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                <div class="loading-dot"></div>
+                <div class="loading-dot" style="animation-delay: 0.2s"></div>
+                <div class="loading-dot" style="animation-delay: 0.4s"></div>
+            </div>
         `;
         chatMessages.appendChild(loadingDiv);
 
+        // API call
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: 'POST',
             headers: {
@@ -172,8 +182,12 @@ async function sendMessage() {
     } finally {
         clearTimeout(timeoutId);
         userInput.disabled = false;
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send';
+        sendBtn.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+        `;
+        userInput.focus();
     }
 }
 
