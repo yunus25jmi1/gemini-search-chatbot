@@ -4,6 +4,21 @@ const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const themeToggle = document.getElementById('theme-toggle');
 
+// Theme Management
+function initializeTheme() {
+    const isDark = localStorage.getItem('theme') === 'dark';
+    document.documentElement.classList.toggle('dark', isDark);
+    themeToggle.textContent = isDark ? '🌞' : '🌓';
+}
+
+themeToggle.addEventListener('click', () => {
+    document.documentElement.classList.toggle('dark');
+    const isDark = document.documentElement.classList.contains('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    themeToggle.textContent = isDark ? '🌞' : '🌓';
+});
+
+// Session Management
 let sessionId = localStorage.getItem('sessionId') || generateSessionId();
 localStorage.setItem('sessionId', sessionId);
 
@@ -11,30 +26,30 @@ function generateSessionId() {
     return 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 }
 
+// Message Handling
 function addMessage(content, isBot = true, sources = []) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `chat-message ${isBot ? 'bot-message' : 'user-message'} animate-fade-in`;
     
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content relative';
+    contentDiv.className = 'message-content';
     
-    // Add message tag
-    const tag = document.createElement('span');
-    tag.className = `message-tag absolute -top-6 ${isBot ? 'bot-tag' : 'user-tag'}`;
-    tag.textContent = isBot ? 'BOT' : 'USER';
-    contentDiv.appendChild(tag);
+    const tagSpan = document.createElement('span');
+    tagSpan.className = 'message-tag';
+    tagSpan.textContent = isBot ? 'AI' : 'You';
     
-    const textElement = document.createElement('div');
-    textElement.textContent = sanitize(content);
-    textElement.className = 'pt-4';
-    contentDiv.appendChild(textElement);
+    const textDiv = document.createElement('div');
+    textDiv.textContent = sanitize(content);
     
+    contentDiv.appendChild(tagSpan);
+    contentDiv.appendChild(textDiv);
+
     if (sources.length > 0) {
         const sourcesDiv = document.createElement('div');
         sourcesDiv.className = 'sources mt-2';
         sources.forEach(source => {
             const sourceElement = document.createElement('div');
-            sourceElement.className = 'text-xs text-gray-400 dark:text-gray-500';
+            sourceElement.className = 'text-xs text-gray-600 dark:text-gray-400';
             sourceElement.textContent = `🔗 ${source}`;
             sourcesDiv.appendChild(sourceElement);
         });
@@ -52,19 +67,7 @@ function sanitize(text) {
     return div.innerHTML;
 }
 
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message text-red-500 dark:text-red-300 p-2 mt-2 border border-red-300 dark:border-red-800 rounded';
-    errorDiv.textContent = message;
-    
-    const existingError = chatMessages.querySelector('.error-message');
-    if (existingError) {
-        chatMessages.replaceChild(errorDiv, existingError);
-    } else {
-        chatMessages.appendChild(errorDiv);
-    }
-}
-
+// Chat Functionality
 async function sendMessage() {
     const message = userInput.value.trim();
     if (!message) return;
@@ -81,8 +84,9 @@ async function sendMessage() {
         addMessage(message, false);
         userInput.value = '';
 
+        // Add loading indicator
         loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading-indicator flex justify-center py-4';
+        loadingDiv.className = 'loading-indicator';
         loadingDiv.innerHTML = `
             <div class="loading-dot"></div>
             <div class="loading-dot" style="animation-delay: 0.2s"></div>
@@ -105,7 +109,7 @@ async function sendMessage() {
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            throw new Error(errorData.error || `Request failed with status ${response.status}`);
         }
 
         const data = await response.json();
@@ -116,14 +120,7 @@ async function sendMessage() {
     } catch (error) {
         console.error('Chat error:', error);
         if (loadingDiv) chatMessages.removeChild(loadingDiv);
-        
-        if (error.name === 'AbortError') {
-            showError('Request timed out. Please try again.');
-        } else if (error.message.includes('Failed to fetch')) {
-            showError('Network error. Please check your connection.');
-        } else {
-            showError(error.message || 'An unexpected error occurred.');
-        }
+        addMessage(error.message || 'An error occurred. Please try again.', true);
     } finally {
         clearTimeout(timeoutId);
         userInput.disabled = false;
@@ -132,22 +129,8 @@ async function sendMessage() {
     }
 }
 
-// Theme toggle functionality
-function updateTheme() {
-    const isDark = document.body.classList.contains('dark');
-    themeToggle.textContent = isDark ? '☀️ Light' : '🌙 Dark';
-}
-
-themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark');
-    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-    updateTheme();
-});
-
-// Initialize theme
-const savedTheme = localStorage.getItem('theme') || 'light';
-document.body.classList.toggle('dark', savedTheme === 'dark');
-updateTheme();
+// Initialize theme on load
+initializeTheme();
 
 // Event Listeners
 userInput.addEventListener('keypress', (e) => {

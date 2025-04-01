@@ -8,35 +8,51 @@
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Chat Message Styles */
+/* Chat Messages */
 .chat-message {
-    @apply mb-4;
+    @apply mb-4 max-w-[85%];
 }
 
-.chat-message.bot-message .message-content {
-    @apply bg-blue-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg p-3 max-w-[85%];
+.chat-message.user-message {
+    @apply ml-auto;
 }
 
-.chat-message.user-message .message-content {
-    @apply bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg p-3 max-w-[85%] ml-auto;
+.message-content {
+    @apply rounded-lg p-3 relative;
 }
 
-/* Message Tags */
+.user-message .message-content {
+    @apply bg-blue-100 dark:bg-blue-900 text-gray-800 dark:text-gray-200;
+}
+
+.bot-message .message-content {
+    @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200;
+}
+
 .message-tag {
-    @apply px-2 py-1 rounded-full text-xs font-semibold;
+    @apply text-xs font-medium px-2 py-1 rounded-full absolute -top-3;
 }
 
-.user-tag {
-    @apply bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+.user-message .message-tag {
+    @apply bg-blue-500 text-white;
 }
 
-.bot-tag {
-    @apply bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200;
+.bot-message .message-tag {
+    @apply bg-gray-500 text-white dark:bg-gray-600;
 }
 
-/* Scrollbar Styling */
+/* Loading Indicator */
+.loading-indicator {
+    @apply flex items-center justify-center gap-2 py-4;
+}
+
+.loading-dot {
+    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce dark:bg-gray-600;
+}
+
+/* Scrollbar */
 #chat-messages::-webkit-scrollbar {
-    width: 6px;
+    @apply w-2;
 }
 
 #chat-messages::-webkit-scrollbar-track {
@@ -45,57 +61,4 @@
 
 #chat-messages::-webkit-scrollbar-thumb {
     @apply bg-gray-400 dark:bg-gray-600 rounded;
-}
-
-/* Loading Indicator */
-.loading-indicator {
-    @apply flex items-center justify-center gap-2;
-}
-
-.loading-dot {
-    @apply w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce;
-}
-
-/* Error Message */
-.error-message {
-    @apply bg-red-50 dark:bg-red-900 border-red-300 dark:border-red-800;
-}
-
-/* Dark Mode Specific Styles */
-body.dark {
-    @apply bg-gray-900;
-}
-
-body.dark .container {
-    @apply bg-gray-800;
-}
-
-body.dark #chat-messages {
-    @apply bg-gray-800;
-}
-
-body.dark .loading-dot {
-    @apply bg-gray-500;
-}
-
-body.dark .chat-message.bot-message .message-content {
-    @apply bg-gray-700;
-}
-
-body.dark .chat-message.user-message .message-content {
-    @apply bg-gray-600;
-}
-
-/* Responsive Input */
-input[type="text"] {
-    @apply dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200;
-}
-
-button {
-    @apply dark:bg-blue-600 dark:hover:bg-blue-700;
-}
-
-/* Connection Status */
-.connection-status {
-    @apply text-gray-600 dark:text-gray-400;
 }
