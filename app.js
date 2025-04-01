@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://gemini-search-chatbot.onrender.com';
+const API_BASE_URL = 'https://gemini-search-chatbot.onrender.com/api/v1/chat';
 const chatMessages = document.getElementById('chat-messages');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
