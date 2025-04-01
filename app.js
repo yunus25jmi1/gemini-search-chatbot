@@ -2,6 +2,7 @@ const API_BASE_URL = 'https://gemini-search-chatbot.onrender.com';
 const chatMessages = document.getElementById('chat-messages');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
+const themeToggle = document.getElementById('theme-toggle');
 
 let sessionId = localStorage.getItem('sessionId') || generateSessionId();
 localStorage.setItem('sessionId', sessionId);
@@ -15,15 +16,25 @@ function addMessage(content, isBot = true, sources = []) {
     messageDiv.className = `chat-message ${isBot ? 'bot-message' : 'user-message'} animate-fade-in`;
     
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    contentDiv.textContent = sanitize(content);
+    contentDiv.className = 'message-content relative';
+    
+    // Add message tag
+    const tag = document.createElement('span');
+    tag.className = `message-tag absolute -top-6 ${isBot ? 'bot-tag' : 'user-tag'}`;
+    tag.textContent = isBot ? 'BOT' : 'USER';
+    contentDiv.appendChild(tag);
+    
+    const textElement = document.createElement('div');
+    textElement.textContent = sanitize(content);
+    textElement.className = 'pt-4';
+    contentDiv.appendChild(textElement);
     
     if (sources.length > 0) {
         const sourcesDiv = document.createElement('div');
         sourcesDiv.className = 'sources mt-2';
         sources.forEach(source => {
             const sourceElement = document.createElement('div');
-            sourceElement.className = 'text-xs text-gray-600';
+            sourceElement.className = 'text-xs text-gray-400 dark:text-gray-500';
             sourceElement.textContent = `🔗 ${source}`;
             sourcesDiv.appendChild(sourceElement);
         });
@@ -43,7 +54,7 @@ function sanitize(text) {
 
 function showError(message) {
     const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message text-red-500 p-2 mt-2 border border-red-300 rounded';
+    errorDiv.className = 'error-message text-red-500 dark:text-red-300 p-2 mt-2 border border-red-300 dark:border-red-800 rounded';
     errorDiv.textContent = message;
     
     const existingError = chatMessages.querySelector('.error-message');
@@ -71,7 +82,7 @@ async function sendMessage() {
         userInput.value = '';
 
         loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading-indicator';
+        loadingDiv.className = 'loading-indicator flex justify-center py-4';
         loadingDiv.innerHTML = `
             <div class="loading-dot"></div>
             <div class="loading-dot" style="animation-delay: 0.2s"></div>
@@ -120,6 +131,23 @@ async function sendMessage() {
         sendBtn.textContent = 'Send';
     }
 }
+
+// Theme toggle functionality
+function updateTheme() {
+    const isDark = document.body.classList.contains('dark');
+    themeToggle.textContent = isDark ? '☀️ Light' : '🌙 Dark';
+}
+
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+    updateTheme();
+});
+
+// Initialize theme
+const savedTheme = localStorage.getItem('theme') || 'light';
+document.body.classList.toggle('dark', savedTheme === 'dark');
+updateTheme();
 
 // Event Listeners
 userInput.addEventListener('keypress', (e) => {

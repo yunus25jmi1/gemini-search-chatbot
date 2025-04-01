@@ -4,21 +4,39 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+}
+
 .animate-fade-in {
     animation: fadeIn 0.3s ease-out;
 }
 
-/* Chat Messages */
+/* Chat Message Styles */
 .chat-message {
     @apply mb-4;
 }
 
 .chat-message.bot-message .message-content {
-    @apply bg-blue-50 text-gray-800 rounded-lg p-3 max-w-[85%];
+    @apply bg-blue-50 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg p-3 max-w-[85%];
 }
 
 .chat-message.user-message .message-content {
-    @apply bg-gray-100 text-gray-800 rounded-lg p-3 max-w-[85%] ml-auto;
+    @apply bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg p-3 max-w-[85%] ml-auto;
+}
+
+/* Message Tags */
+.message-tag {
+    @apply px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.user-tag {
+    @apply bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+}
+
+.bot-tag {
+    @apply bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200;
 }
 
 /* Scrollbar Styling */
@@ -27,30 +45,62 @@
 }
 
 #chat-messages::-webkit-scrollbar-track {
-    @apply bg-gray-100 rounded;
+    @apply bg-gray-100 dark:bg-gray-700 rounded;
 }
 
 #chat-messages::-webkit-scrollbar-thumb {
-    @apply bg-gray-400 rounded;
+    @apply bg-gray-400 dark:bg-gray-600 rounded;
 }
 
-/* Loading State */
+/* Loading Indicator */
 .loading-indicator {
-    @apply flex items-center gap-2 text-gray-500 text-sm;
+    @apply flex items-center justify-center gap-2;
 }
 
 .loading-dot {
-    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
+    @apply w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce;
 }
 
+/* Error Message */
 .error-message {
-    @apply text-red-500 p-2 mt-2 border border-red-300 rounded bg-red-50;
+    @apply bg-red-50 dark:bg-red-900 border-red-300 dark:border-red-800;
 }
 
-.loading-indicator {
-    @apply flex items-center justify-center gap-2 py-4;
+/* Dark Mode Specific Styles */
+body.dark {
+    @apply bg-gray-900;
 }
 
-.loading-dot {
-    @apply w-2 h-2 bg-gray-400 rounded-full animate-bounce;
+body.dark .container {
+    @apply bg-gray-800;
+}
+
+body.dark #chat-messages {
+    @apply bg-gray-800;
+}
+
+body.dark .loading-dot {
+    @apply bg-gray-500;
+}
+
+body.dark .chat-message.bot-message .message-content {
+    @apply bg-gray-700;
+}
+
+body.dark .chat-message.user-message .message-content {
+    @apply bg-gray-600;
+}
+
+/* Responsive Input */
+input[type="text"] {
+    @apply dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200;
+}
+
+button {
+    @apply dark:bg-blue-600 dark:hover:bg-blue-700;
+}
+
+/* Connection Status */
+.connection-status {
+    @apply text-gray-600 dark:text-gray-400;
 }
