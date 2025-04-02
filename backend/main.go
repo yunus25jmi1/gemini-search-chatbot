@@ -18,10 +18,8 @@ import (
 )
 
 func main() {
-	// Load environment variables
 	utils.LoadConfig()
 
-	// Create MongoDB client
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -36,27 +34,17 @@ func main() {
 	chatHandler := handlers.NewChatHandler(mongoClient)
 	searchHandler := handlers.NewSearchHandler(mongoClient)
 
-	// Configure router with API versioning
-	router := http.NewServeMux()
+	// Configure versioned API router
 	apiRouter := http.NewServeMux()
 	apiRouter.HandleFunc("/health", healthCheckHandler)
 	apiRouter.HandleFunc("/chat", chatHandler.HandleChat)
 	apiRouter.HandleFunc("/search", searchHandler.HandleSearch)
 
-	// Versioned API endpoint
+	// Main router
+	router := http.NewServeMux()
 	router.Handle("/api/v1/", http.StripPrefix("/api/v1", apiRouter))
-
-	// Catch-All 404 Handler
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{
-			"error":   "Endpoint not found",
-			"path":    r.URL.Path,
-			"docs":    "https://your-docs-url.com",
-			"version": "1.4.0",
-		})
-	})
+	router.HandleFunc("/", notFoundHandler)
+	router.HandleFunc("/favicon.ico", faviconHandler)
 
 	// Configure middleware chain
 	handler := applyMiddleware(
@@ -67,17 +55,17 @@ func main() {
 		recoveryMiddleware,
 	)
 
-	// Configure HTTP/2 server
+	// Configure HTTP/2 server with timeouts
 	server := &http.Server{
-		Addr:    getServerAddress(),
-		Handler: h2c.NewHandler(handler, &http2.Server{}),
+		Addr:         getServerAddress(),
+		Handler:      h2c.NewHandler(handler, &http2.Server{}),
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
 
-	// Graceful shutdown setup
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Start server
 	go func() {
 		log.Printf("Server starting on %s", server.Addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -85,15 +73,12 @@ func main() {
 		}
 	}()
 
-	// Wait for shutdown signal
 	<-done
 	log.Println("Server shutting down...")
 
-	// Create shutdown context
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer shutdownCancel()
 
-	// Graceful shutdown
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Graceful shutdown failed: %v", err)
 	}
@@ -101,21 +86,20 @@ func main() {
 }
 
 func getServerAddress() string {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	if port := os.Getenv("PORT"); port != "" {
+		return ":" + port
 	}
-	return ":" + port
+	return ":8080"
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":  "ok",
 		"version": "1.4.0",
@@ -123,7 +107,26 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Middleware configuration
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(map[string]string{
+		"error":   "Endpoint not found",
+		"path":    r.URL.Path,
+		"docs":    "https://docs.example.com/api",
+		"version": "1.4.0",
+	})
+}
+
+func faviconHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	http.ServeFile(w, r, "assets/favicon.ico")
+}
+
 func applyMiddleware(h http.Handler, middleware ...func(http.Handler) http.Handler) http.Handler {
 	for _, mw := range middleware {
 		h = mw(h)
@@ -156,8 +159,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func rateLimitMiddleware(next http.Handler) http.Handler {
-	// Implement using github.com/ulule/limiter/v3
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO: Implement rate limiting logic
 		next.ServeHTTP(w, r)
 	})
 }
@@ -166,7 +169,7 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Recovered from panic: %v", err)
+				log.Printf("Panic recovered: %v", err)
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}()
