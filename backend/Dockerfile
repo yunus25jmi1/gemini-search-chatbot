@@ -28,11 +28,6 @@ RUN apk --no-cache add ca-certificates
 # Expose port
 EXPOSE 8080
 
-# Runtime environment variables
-ENV MONGODB_URI="mongodb+srv://admin:AUvQCcjRUNSk5IFk@cluster0.tpgy3zw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-ENV GEMINI_API_KEY="AIzaSyAj93LD2BPsm-n8HUYq4Ut0lv8Z08lAO1k"
-ENV PORT=8080
-
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD wget --quiet --tries=1 --spider http://localhost:${PORT}/health || exit 1
